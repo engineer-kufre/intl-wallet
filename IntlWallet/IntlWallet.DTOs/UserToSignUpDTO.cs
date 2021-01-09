@@ -29,6 +29,10 @@ namespace IntlWallet.DTOs
         [DataType(DataType.Password)]
         public string Password { get; set; }
 
+        [Required]
         public string Role { get; set; }
+
+        [Required]
+        public string MainCurrency { get; set; }
     }
 }
