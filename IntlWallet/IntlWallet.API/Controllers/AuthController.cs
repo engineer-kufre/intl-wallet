@@ -25,8 +25,9 @@ namespace IntlWallet.API.Controllers
         private readonly IConfiguration _configuration;
         private readonly AppDbContext _ctx;
         private readonly IWalletRepository _walletRepository;
+        private readonly IUserMainCurrencyRepository _userMainCurrencyRepository;
 
-        public AuthController(UserManager<ApplicationUser> userManager, ILogger<AuthController> logger, SignInManager<ApplicationUser> signInManager, IConfiguration configuration, AppDbContext ctx, IWalletRepository walletRepository)
+        public AuthController(UserManager<ApplicationUser> userManager, ILogger<AuthController> logger, SignInManager<ApplicationUser> signInManager, IConfiguration configuration, AppDbContext ctx, IWalletRepository walletRepository, IUserMainCurrencyRepository userMainCurrencyRepository)
         {
             _userManager = userManager;
             _logger = logger;
@@ -34,6 +35,7 @@ namespace IntlWallet.API.Controllers
             _configuration = configuration;
             _ctx = ctx;
             _walletRepository = walletRepository;
+            _userMainCurrencyRepository = userMainCurrencyRepository;
         }
 
         [HttpPost("signup")]
@@ -56,6 +58,24 @@ namespace IntlWallet.API.Controllers
 
                 if(model.Role != "Admin")
                 {
+                    UserMainCurrencyDetail mainCurrency;
+                    try
+                    {
+                        mainCurrency = new UserMainCurrencyDetail
+                        {
+                            ApplicationUserId = newUser.Id,
+                            MainCurrency = model.MainCurrency
+                        };
+
+                        await _userMainCurrencyRepository.AddMainCurrency(mainCurrency);
+                    }
+                    catch (Exception e)
+                    {
+                        await _userManager.DeleteAsync(newUser);
+                        _logger.LogError(e.Message);
+                        return BadRequest(ResponseMessage.Message("Bad request", errors: new { message = "Failed to add main currency" }));
+                    }
+
                     try
                     {
                         Wallet wallet = new Wallet
@@ -70,6 +90,7 @@ namespace IntlWallet.API.Controllers
                     catch (Exception e)
                     {
                         await _userManager.DeleteAsync(newUser);
+                        await _userMainCurrencyRepository.DeleteMainCurrency(mainCurrency);
                         _logger.LogError(e.Message);
                         return BadRequest(ResponseMessage.Message("Bad request", errors: new { message = "Failed to add wallet" }));
                     }

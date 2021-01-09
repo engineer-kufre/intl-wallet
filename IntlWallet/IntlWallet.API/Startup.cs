@@ -36,6 +36,7 @@ namespace IntlWallet.API
             services.AddDbContext<AppDbContext>(options => options.UseSqlServer(Configuration.GetConnectionString("DbConnection")));
 
             services.AddScoped<IWalletRepository, WalletRepository>();
+            services.AddScoped<IUserMainCurrencyRepository, UserMainCurrencyRepository>();
 
             // Identity service
             services.AddIdentity<ApplicationUser, IdentityRole>(option =>
