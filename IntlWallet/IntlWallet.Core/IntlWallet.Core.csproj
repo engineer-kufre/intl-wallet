@@ -4,4 +4,9 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\IntlWallet.DTOs\IntlWallet.DTOs.csproj" />
+    <ProjectReference Include="..\IntlWallet.Models\IntlWallet.Models.csproj" />
+  </ItemGroup>
+
 </Project>
