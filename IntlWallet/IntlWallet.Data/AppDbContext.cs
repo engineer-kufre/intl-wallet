@@ -13,5 +13,13 @@ namespace IntlWallet.Data
 
         public DbSet<Wallet> Wallets { get; set; }
         public DbSet<UserMainCurrencyDetail> UserMainCurrencyDetails { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<Wallet>()
+                        .Property(i => i.Balance)
+                        .HasColumnType("money");
+        }
     }
 }
