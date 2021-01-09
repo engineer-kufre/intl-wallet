@@ -47,7 +47,8 @@ namespace IntlWallet.API
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, AppDbContext ctx,
+            RoleManager<IdentityRole> roleManager, UserManager<ApplicationUser> userManager)
         {
             if (env.IsDevelopment())
             {
@@ -59,6 +60,8 @@ namespace IntlWallet.API
             app.UseRouting();
 
             app.UseAuthorization();
+
+            PreSeeder.Seeder(ctx, roleManager, userManager).Wait();
 
             app.UseEndpoints(endpoints =>
             {
