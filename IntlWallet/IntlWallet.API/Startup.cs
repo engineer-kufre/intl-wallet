@@ -37,6 +37,7 @@ namespace IntlWallet.API
 
             services.AddScoped<IWalletRepository, WalletRepository>();
             services.AddScoped<IUserMainCurrencyRepository, UserMainCurrencyRepository>();
+            services.AddScoped<ITransactionRepository, TransactionRepository>();
 
             // Identity service
             services.AddIdentity<ApplicationUser, IdentityRole>(option =>
