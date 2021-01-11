@@ -10,6 +10,7 @@ namespace IntlWallet.Data.Services
     {
         Task<IEnumerable<Wallet>> GetWalletsByUserId(string userId);
         Task<Wallet> GetWalletByWalletId(string walletId);
+        Task<Wallet> GetWalletByWalletCurrency(string walletCurrency);
         Task<IEnumerable<Wallet>> GetAllWallets();
         Task<bool> AddWallet(Wallet model);
         Task<bool> UpdateWallet(Wallet updateModel);

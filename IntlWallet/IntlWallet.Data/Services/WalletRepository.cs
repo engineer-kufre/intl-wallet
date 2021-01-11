@@ -35,6 +35,11 @@ namespace IntlWallet.Data.Services
             return allWallets;
         }
 
+        public async Task<Wallet> GetWalletByWalletCurrency(string walletCurrency)
+        {
+            return await _ctx.Wallets.FirstOrDefaultAsync(x => x.WalletCurrency == walletCurrency);
+        }
+
         public async Task<Wallet> GetWalletByWalletId(string walletId)
         {
             return await _ctx.Wallets.FirstOrDefaultAsync(x => x.WalletId == walletId);

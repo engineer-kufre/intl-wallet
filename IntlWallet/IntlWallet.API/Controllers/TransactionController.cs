@@ -39,6 +39,9 @@ namespace IntlWallet.API.Controllers
             if (string.IsNullOrWhiteSpace(status))
                 return BadRequest(ResponseMessage.Message("Invalid input", errors: new { message = "Status should not be null or empty or whitespace" }));
 
+            if (status != "pending" || status != "approved")
+                return BadRequest(ResponseMessage.Message("Invalid input", errors: new { message = "Status should be either pending or approved" }));
+
             try
             {
                 var transactions = await _transactionRepository.GetTransactionsByStatus(status);
@@ -91,7 +94,21 @@ namespace IntlWallet.API.Controllers
 
                 var convertedAmount = await CurrencyConverter.ConvertCurrency(transaction.TransactionCurrency, mainCurrency, transaction.Amount);
 
-                wallet.Balance += convertedAmount;
+                if(transaction.TransactionType == "Credit")
+                {
+                    wallet.Balance += convertedAmount;
+                }
+                else
+                {
+                    if (wallet.Balance >= convertedAmount)
+                    {
+                        wallet.Balance -= convertedAmount;
+                    }
+                    else
+                    {
+                        return BadRequest(ResponseMessage.Message("Bad request", errors: new { message = "Insufficient funds" }));
+                    }
+                }
                 await _walletRepository.UpdateWallet(wallet);
 
                 try
@@ -101,7 +118,15 @@ namespace IntlWallet.API.Controllers
                 }
                 catch (Exception)
                 {
-                    wallet.Balance -= convertedAmount;
+                    if (transaction.TransactionType == "Credit")
+                    {
+                        wallet.Balance -= convertedAmount;
+                    }
+                    else
+                    {
+                        wallet.Balance += convertedAmount;
+                    }
+
                     await _walletRepository.UpdateWallet(wallet);
 
                     return BadRequest(ResponseMessage.Message("Bad request", errors: new { message = "Failed to approve transaction" }));
@@ -114,7 +139,7 @@ namespace IntlWallet.API.Controllers
                 return BadRequest(ResponseMessage.Message("Bad request", errors: new { message = "Failed to fund wallet" }));
             }
 
-            return Ok(ResponseMessage.Message("Success! Wallet funded"));
+            return Ok(ResponseMessage.Message("Success! Transaction approved"));
         }
     }
 }

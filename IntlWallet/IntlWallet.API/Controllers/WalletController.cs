@@ -226,6 +226,109 @@ namespace IntlWallet.API.Controllers
             }
         }
 
+        [Authorize(Roles = "Noob, Elite")]
+        [HttpPost("withdraw")]
+        public async Task<IActionResult> Withdraw([FromBody] WithdrawDTO model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ResponseMessage.Message("Bad request", errors: new { message = ModelState }));
 
+            var loggedInUser = await _userManager.GetUserAsync(User);
+            if (loggedInUser == null) return NotFound(ResponseMessage.Message("Not found", errors: new { message = "Could not access user" }));
+
+            var loggedInUserRoles = await _userManager.GetRolesAsync(loggedInUser);
+
+            Transaction transaction;
+
+            if (loggedInUserRoles[0] == "Noob")
+            {
+                var wallets = await _walletRepository.GetWalletsByUserId(loggedInUser.Id);
+                var wallet = wallets.ToList()[0];
+
+                transaction = new Transaction
+                {
+                    TransactionId = Guid.NewGuid().ToString(),
+                    TransactionType = "Debit",
+                    WalletId = wallet.WalletId,
+                    TransactionStatus = "pending",
+                    Amount = model.Amount,
+                    TransactionCurrency = model.TransactionCurrency
+                };
+
+                try
+                {
+                    await _transactionRepository.AddTransaction(transaction);
+                    return Ok(ResponseMessage.Message($"Success! Transaction with id {transaction.TransactionId} created. Withdrawal approval pending"));
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e.Message);
+                    return BadRequest(ResponseMessage.Message("Bad request", errors: new { message = "Failed to add transaction" }));
+                }
+            }
+            else
+            {
+                var wallets = await _walletRepository.GetWalletsByUserId(loggedInUser.Id);
+                var wallet = wallets.FirstOrDefault(x => x.WalletCurrency == model.TransactionCurrency);
+
+                string transactionCurrency = model.TransactionCurrency;
+                if (wallet == null)
+                {
+                    try
+                    {
+                        var mainCurrencyDetail = await _userMainCurrencyRepository.GetMainCurrencyByUserId(loggedInUser.Id);
+                        var mainCurrency = mainCurrencyDetail.MainCurrency;
+                        wallet = await _walletRepository.GetWalletByWalletCurrency(mainCurrency);
+                        transactionCurrency = mainCurrency;
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogError(e.Message);
+                        return BadRequest(ResponseMessage.Message("Data access error", errors: new { message = "Could not access record from data source" }));
+                    }
+                }
+
+                transaction = new Transaction
+                {
+                    TransactionId = Guid.NewGuid().ToString(),
+                    TransactionType = "Debit",
+                    WalletId = wallet.WalletId,
+                    Amount = model.Amount,
+                    TransactionCurrency = model.TransactionCurrency
+                };
+
+                try
+                {
+                    await _transactionRepository.AddTransaction(transaction);
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e.Message);
+                    return BadRequest(ResponseMessage.Message("Bad request", errors: new { message = "Failed to add transaction" }));
+                }
+
+                try
+                {
+                    var amount = await CurrencyConverter.ConvertCurrency(model.TransactionCurrency, transactionCurrency, model.Amount);
+                    if(wallet.Balance >= amount)
+                    {
+                        wallet.Balance -= amount;
+
+                        await _walletRepository.UpdateWallet(wallet);
+                        return Ok(ResponseMessage.Message("Success! Withdrawal successful"));
+                    }
+                    else
+                    {
+                        return BadRequest(ResponseMessage.Message("Bad request", errors: new { message = "Insufficient funds" }));
+                    }
+                }
+                catch (Exception e)
+                {
+                    await _transactionRepository.DeleteTransaction(transaction);
+                    _logger.LogError(e.Message);
+                    return BadRequest(ResponseMessage.Message("Bad request", errors: new { message = "Failed to fund wallet" }));
+                }
+            }
+        }
     }
 }
