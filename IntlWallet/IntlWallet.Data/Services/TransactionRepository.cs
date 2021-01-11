@@ -23,6 +23,12 @@ namespace IntlWallet.Data.Services
             return await _ctx.SaveChangesAsync() > 0;
         }
 
+        public async Task<bool> DeleteTransaction(Transaction model)
+        {
+            _ctx.Transactions.Remove(model);
+            return await _ctx.SaveChangesAsync() > 0;
+        }
+
         public async Task<IEnumerable<Transaction>> GetAllTransactions()
         {
             var allTransactions = await _ctx.Transactions.ToListAsync();
@@ -34,10 +40,21 @@ namespace IntlWallet.Data.Services
             return await _ctx.Transactions.FirstOrDefaultAsync(x => x.TransactionId == transactionId);
         }
 
+        public async Task<IEnumerable<Transaction>> GetTransactionsByStatus(string status)
+        {
+            return await _ctx.Transactions.Where(x => x.TransactionStatus == status).ToListAsync();
+        }
+
         public async Task<IEnumerable<Transaction>> GetTransactionsByWalletId(string walletId)
         {
             var userTransactions = await _ctx.Transactions.Where(x => x.WalletId == walletId).ToListAsync();
             return userTransactions;
+        }
+
+        public async Task<bool> UpdateTransaction(Transaction updateModel)
+        {
+            _ctx.Transactions.Update(updateModel);
+            return await _ctx.SaveChangesAsync() > 0;
         }
     }
 }

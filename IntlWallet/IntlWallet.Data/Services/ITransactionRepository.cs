@@ -12,5 +12,8 @@ namespace IntlWallet.Data.Services
         Task<Transaction> GetTransactionByTransactionId(string transactionId);
         Task<IEnumerable<Transaction>> GetAllTransactions();
         Task<bool> AddTransaction(Transaction model);
+        Task<bool> DeleteTransaction(Transaction model);
+        Task<bool> UpdateTransaction(Transaction updateModel);
+        Task<IEnumerable<Transaction>> GetTransactionsByStatus(string status);
     }
 }

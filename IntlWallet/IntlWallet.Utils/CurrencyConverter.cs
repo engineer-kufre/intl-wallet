@@ -31,7 +31,7 @@ namespace IntlWallet.Utils
             return convertedAmount;
         }
 
-        public static async Task<decimal> SelectCurrencyRate(string currency)
+        private static async Task<decimal> SelectCurrencyRate(string currency)
         {
             decimal rate = 0;
             Rates rates = await GetCurrencyRates();

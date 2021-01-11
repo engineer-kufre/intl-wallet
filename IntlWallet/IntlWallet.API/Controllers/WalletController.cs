@@ -22,13 +22,15 @@ namespace IntlWallet.API.Controllers
         private readonly IWalletRepository _walletRepository;
         private readonly ILogger<WalletController> _logger;
         private readonly ITransactionRepository _transactionRepository;
+        private readonly IUserMainCurrencyRepository _userMainCurrencyRepository;
 
-        public WalletController(UserManager<ApplicationUser> userManager, IWalletRepository walletRepository, ILogger<WalletController> logger, ITransactionRepository transactionRepository)
+        public WalletController(UserManager<ApplicationUser> userManager, IWalletRepository walletRepository, ILogger<WalletController> logger, ITransactionRepository transactionRepository, IUserMainCurrencyRepository userMainCurrencyRepository)
         {
             _userManager = userManager;
             _walletRepository = walletRepository;
             _logger = logger;
             _transactionRepository = transactionRepository;
+            _userMainCurrencyRepository = userMainCurrencyRepository;
         }
 
         [Authorize(Roles = "Elite")]
@@ -89,13 +91,33 @@ namespace IntlWallet.API.Controllers
 
             try
             {
-                //something that takes the amount and converts it to the wallet currency
-                wallet.Balance += model.Amount;
+                var walletOwner = await _userManager.FindByIdAsync(wallet.ApplicationUserId);
+                if (walletOwner == null)
+                    return NotFound(ResponseMessage.Message("Not found", new { message = $"User with id {wallet.ApplicationUserId} was not found" }));
+
+                UserMainCurrencyDetail mainCurrencyDetail;
+                try
+                {
+                    mainCurrencyDetail = await _userMainCurrencyRepository.GetMainCurrencyByUserId(walletOwner.Id);
+                }
+                catch (Exception e)
+                {
+                    await _transactionRepository.DeleteTransaction(transaction);
+                    _logger.LogError(e.Message);
+                    return BadRequest(ResponseMessage.Message("Data access error", errors: new { message = "Could not access record from data source" }));
+                }
+                
+                var mainCurrency = mainCurrencyDetail.MainCurrency;
+
+                var convertedAmount = await CurrencyConverter.ConvertCurrency(model.TransactionCurrency, mainCurrency, model.Amount);
+
+                wallet.Balance += convertedAmount;
                 await _walletRepository.UpdateWallet(wallet);
                 return Ok(ResponseMessage.Message("Success! Wallet funded"));
             }
             catch (Exception e)
             {
+                await _transactionRepository.DeleteTransaction(transaction);
                 _logger.LogError(e.Message);
                 return BadRequest(ResponseMessage.Message("Bad request", errors: new { message = "Failed to fund wallet" }));
             }
@@ -183,23 +205,27 @@ namespace IntlWallet.API.Controllers
                 }
                 catch (Exception e)
                 {
+                    await _walletRepository.DeleteWallet(wallet);
                     _logger.LogError(e.Message);
                     return BadRequest(ResponseMessage.Message("Bad request", errors: new { message = "Failed to add transaction" }));
                 }
 
                 try
                 {
-                    //something that takes the amount and converts it to the wallet currency
                     wallet.Balance += model.Amount;
                     await _walletRepository.UpdateWallet(wallet);
                     return Ok(ResponseMessage.Message("Success! Wallet funded"));
                 }
                 catch (Exception e)
                 {
+                    await _transactionRepository.DeleteTransaction(transaction);
+                    await _walletRepository.DeleteWallet(wallet);
                     _logger.LogError(e.Message);
                     return BadRequest(ResponseMessage.Message("Bad request", errors: new { message = "Failed to fund wallet" }));
                 }
             }
         }
+
+
     }
 }
