@@ -330,5 +330,39 @@ namespace IntlWallet.API.Controllers
                 }
             }
         }
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("{Id}")]
+        public async Task<IActionResult> GetWallets(string Id)
+        {
+            if (string.IsNullOrWhiteSpace(Id))
+                return BadRequest(ResponseMessage.Message("Invalid input", errors: new { message = "Id should not be null or empty or whitespace" }));
+
+            try
+            {
+                var wallets = await _walletRepository.GetWalletsByUserId(Id);
+                List<WalletToReturnDTO> walletsToReturn = new List<WalletToReturnDTO>();
+
+                foreach (var wallet in wallets)
+                {
+                    var walletToReturn = new WalletToReturnDTO
+                    {
+                        WalletId = wallet.WalletId,
+                        ApplicationUserId = wallet.ApplicationUserId,
+                        WalletCurrency = wallet.WalletCurrency,
+                        Balance = wallet.Balance
+                    };
+
+                    walletsToReturn.Add(walletToReturn);
+                }
+
+                return Ok(ResponseMessage.Message("Success", data: walletsToReturn));
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e.Message);
+                return BadRequest(ResponseMessage.Message("Data access error", errors: new { message = "Could not access record from data source" }));
+            }
+        }
     }
 }

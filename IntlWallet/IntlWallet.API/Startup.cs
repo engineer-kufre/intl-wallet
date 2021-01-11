@@ -36,14 +36,12 @@ namespace IntlWallet.API
         {
             services.AddControllers();
 
-            // db connection string
             services.AddDbContext<AppDbContext>(options => options.UseSqlServer(Configuration.GetConnectionString("DbConnection")));
 
             services.AddScoped<IWalletRepository, WalletRepository>();
             services.AddScoped<IUserMainCurrencyRepository, UserMainCurrencyRepository>();
             services.AddScoped<ITransactionRepository, TransactionRepository>();
 
-            // Identity service
             services.AddIdentity<ApplicationUser, IdentityRole>(option =>
             {
                 option.Password.RequireDigit = false;

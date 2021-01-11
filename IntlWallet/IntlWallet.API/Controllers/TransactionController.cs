@@ -1,4 +1,5 @@
 ﻿using IntlWallet.Data.Services;
+using IntlWallet.DTOs;
 using IntlWallet.Models;
 using IntlWallet.Utils;
 using Microsoft.AspNetCore.Authorization;
@@ -18,12 +19,12 @@ namespace IntlWallet.API.Controllers
     public class TransactionController : ControllerBase
     {
         private readonly ITransactionRepository _transactionRepository;
-        private readonly ILogger<WalletController> _logger;
+        private readonly ILogger<TransactionController> _logger;
         private readonly IWalletRepository _walletRepository;
         private readonly IUserMainCurrencyRepository _userMainCurrencyRepository;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public TransactionController(ITransactionRepository transactionRepository, ILogger<WalletController> logger, IWalletRepository walletRepository, IUserMainCurrencyRepository userMainCurrencyRepository, UserManager<ApplicationUser> userManager)
+        public TransactionController(ITransactionRepository transactionRepository, ILogger<TransactionController> logger, IWalletRepository walletRepository, IUserMainCurrencyRepository userMainCurrencyRepository, UserManager<ApplicationUser> userManager)
         {
             _transactionRepository = transactionRepository;
             _logger = logger;
@@ -39,13 +40,33 @@ namespace IntlWallet.API.Controllers
             if (string.IsNullOrWhiteSpace(status))
                 return BadRequest(ResponseMessage.Message("Invalid input", errors: new { message = "Status should not be null or empty or whitespace" }));
 
-            if (status != "pending" || status != "approved")
+            if (!(status == "pending" || status == "approved"))
                 return BadRequest(ResponseMessage.Message("Invalid input", errors: new { message = "Status should be either pending or approved" }));
 
             try
             {
                 var transactions = await _transactionRepository.GetTransactionsByStatus(status);
-                return Ok(ResponseMessage.Message("Success", data: transactions));
+                List<TransactionToReturnDTO> transactionsToReturn = new List<TransactionToReturnDTO>();
+
+                foreach (var transaction in transactions)
+                {
+                    var transactionToReturn = new TransactionToReturnDTO
+                    {
+                        TransactionId = transaction.TransactionId,
+                        WalletId = transaction.WalletId,
+                        TransactionType = transaction.TransactionType,
+                        TransactionCurrency = transaction.TransactionCurrency,
+                        Amount = transaction.Amount,
+                        TransactionStatus = transaction.TransactionStatus
+                    };
+
+                    transactionsToReturn.Add(transactionToReturn);
+                }
+
+                if(transactionsToReturn.Count() > 0)
+                    return Ok(ResponseMessage.Message("Success", data: transactionsToReturn));
+                else
+                    return Ok(ResponseMessage.Message($"No {status} transactions"));
             }
             catch (Exception e)
             {
@@ -55,7 +76,7 @@ namespace IntlWallet.API.Controllers
         }
 
         [Authorize(Roles = "Admin")]
-        [HttpGet("{Id}/approve")]
+        [HttpPatch("{Id}/approve")]
         public async Task<IActionResult> ApproveTransaction(string Id)
         {
             if (string.IsNullOrWhiteSpace(Id))

@@ -21,12 +21,14 @@ namespace IntlWallet.API.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IUserMainCurrencyRepository _userMainCurrencyRepository;
         private readonly ILogger<UserController> _logger;
+        private readonly IWalletRepository _walletRepository;
 
-        public UserController(UserManager<ApplicationUser> userManager, IUserMainCurrencyRepository userMainCurrencyRepository, ILogger<UserController> logger)
+        public UserController(UserManager<ApplicationUser> userManager, IUserMainCurrencyRepository userMainCurrencyRepository, ILogger<UserController> logger, IWalletRepository walletRepository)
         {
             _userManager = userManager;
             _userMainCurrencyRepository = userMainCurrencyRepository;
             _logger = logger;
+            _walletRepository = walletRepository;
         }
 
         [HttpPatch("{Id}/promote")]
@@ -111,6 +113,29 @@ namespace IntlWallet.API.Controllers
             {
                 _logger.LogError(e.Message);
                 return BadRequest(ResponseMessage.Message("Bad request", errors: new { message = "Failed to update main currency" }));
+            }
+
+            if(userRoles[0] == "Noob")
+            {
+                var wallets = await _walletRepository.GetWalletsByUserId(user.Id);
+                var wallet = wallets.ToList()[0];
+                var oldCurrency = wallet.WalletCurrency;
+
+                try
+                {
+                    wallet.WalletCurrency = model.NewMainCurrency;
+                    var amount = await CurrencyConverter.ConvertCurrency(oldCurrency, model.NewMainCurrency, wallet.Balance);
+                    wallet.Balance = amount;
+                    await _walletRepository.UpdateWallet(wallet);
+                }
+                catch (Exception e)
+                {
+                    mainCurrencyDetails.MainCurrency = oldCurrency;
+                    await _userMainCurrencyRepository.UpdateMainCurrency(mainCurrencyDetails);
+
+                    _logger.LogError(e.Message);
+                    return BadRequest(ResponseMessage.Message("Bad request", errors: new { message = "Failed to update wallet" }));
+                }
             }
 
             return Ok(ResponseMessage.Message("Success", data: new { message = "Updated Successfully!" }));
