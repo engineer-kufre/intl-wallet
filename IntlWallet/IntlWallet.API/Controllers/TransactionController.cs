@@ -96,6 +96,10 @@ namespace IntlWallet.API.Controllers
             if (transaction.TransactionStatus == "approved")
                 return BadRequest(ResponseMessage.Message("Bad request", errors: new { message = "Transaction is already approved" }));
 
+            var isValid = CurrencyConverter.ValidateCurrencyInput(transaction.TransactionCurrency);
+            if (!isValid)
+                return BadRequest(ResponseMessage.Message("Error", errors: new { message = "Invalid currency input" }));
+
             Wallet wallet;
             UserMainCurrencyDetail mainCurrencyDetail;
             try
@@ -113,7 +117,15 @@ namespace IntlWallet.API.Controllers
             {
                 var mainCurrency = mainCurrencyDetail.MainCurrency;
 
-                var convertedAmount = await CurrencyConverter.ConvertCurrency(transaction.TransactionCurrency, mainCurrency, transaction.Amount);
+                decimal convertedAmount;
+                try
+                {
+                    convertedAmount = await CurrencyConverter.ConvertCurrency(transaction.TransactionCurrency, mainCurrency, transaction.Amount);
+                }
+                catch (Exception e)
+                {
+                    return BadRequest(ResponseMessage.Message("Error", errors: new { message = e.Message }));
+                }
 
                 if(transaction.TransactionType == "Credit")
                 {

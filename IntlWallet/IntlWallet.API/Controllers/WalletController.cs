@@ -42,6 +42,7 @@ namespace IntlWallet.API.Controllers
 
             try
             {
+                //do not create if wallet with this currency already exists
                 Wallet wallet = new Wallet
                 {
                     WalletId = Guid.NewGuid().ToString(),
@@ -65,6 +66,10 @@ namespace IntlWallet.API.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ResponseMessage.Message("Bad request", errors: new { message = ModelState }));
+
+            var isValid = CurrencyConverter.ValidateCurrencyInput(model.TransactionCurrency);
+            if (!isValid)
+                return BadRequest(ResponseMessage.Message("Error", errors: new { message = "Invalid currency input" }));
 
             var wallet = await _walletRepository.GetWalletByWalletId(Id);
             if (wallet == null)
@@ -109,7 +114,15 @@ namespace IntlWallet.API.Controllers
                 
                 var mainCurrency = mainCurrencyDetail.MainCurrency;
 
-                var convertedAmount = await CurrencyConverter.ConvertCurrency(model.TransactionCurrency, mainCurrency, model.Amount);
+                decimal convertedAmount;
+                try
+                {
+                    convertedAmount = await CurrencyConverter.ConvertCurrency(model.TransactionCurrency, mainCurrency, model.Amount);
+                }
+                catch (Exception e)
+                {
+                    return BadRequest(ResponseMessage.Message("Error", errors: new { message = e.Message }));
+                }
 
                 wallet.Balance += convertedAmount;
                 await _walletRepository.UpdateWallet(wallet);
@@ -233,6 +246,10 @@ namespace IntlWallet.API.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ResponseMessage.Message("Bad request", errors: new { message = ModelState }));
 
+            var isValid = CurrencyConverter.ValidateCurrencyInput(model.TransactionCurrency);
+            if (!isValid)
+                return BadRequest(ResponseMessage.Message("Error", errors: new { message = "Invalid currency input" }));
+
             var loggedInUser = await _userManager.GetUserAsync(User);
             if (loggedInUser == null) return NotFound(ResponseMessage.Message("Not found", errors: new { message = "Could not access user" }));
 
@@ -309,7 +326,16 @@ namespace IntlWallet.API.Controllers
 
                 try
                 {
-                    var amount = await CurrencyConverter.ConvertCurrency(model.TransactionCurrency, transactionCurrency, model.Amount);
+                    decimal amount;
+                    try
+                    {
+                        amount = await CurrencyConverter.ConvertCurrency(model.TransactionCurrency, transactionCurrency, model.Amount);
+                    }
+                    catch (Exception e)
+                    {
+                        return BadRequest(ResponseMessage.Message("Error", errors: new { message = e.Message }));
+                    }
+
                     if(wallet.Balance >= amount)
                     {
                         wallet.Balance -= amount;

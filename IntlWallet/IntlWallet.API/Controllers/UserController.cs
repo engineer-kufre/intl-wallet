@@ -93,6 +93,10 @@ namespace IntlWallet.API.Controllers
             if (userRoles[0] == "Admin")
                 return BadRequest(ResponseMessage.Message("Bad request", new { message = "User is an Admin and has no main currency" }));
 
+            var isValid = CurrencyConverter.ValidateCurrencyInput(model.NewMainCurrency);
+            if(!isValid)
+                return BadRequest(ResponseMessage.Message("Error", errors: new { message = "Invalid currency input" }));
+
             UserMainCurrencyDetail mainCurrencyDetails;
             try
             {
@@ -124,7 +128,17 @@ namespace IntlWallet.API.Controllers
                 try
                 {
                     wallet.WalletCurrency = model.NewMainCurrency;
-                    var amount = await CurrencyConverter.ConvertCurrency(oldCurrency, model.NewMainCurrency, wallet.Balance);
+
+                    decimal amount;
+                    try
+                    {
+                        amount = await CurrencyConverter.ConvertCurrency(oldCurrency, model.NewMainCurrency, wallet.Balance);
+                    }
+                    catch (Exception e)
+                    {
+                        return BadRequest(ResponseMessage.Message("Error", errors: new { message = e.Message }));
+                    }
+
                     wallet.Balance = amount;
                     await _walletRepository.UpdateWallet(wallet);
                 }
