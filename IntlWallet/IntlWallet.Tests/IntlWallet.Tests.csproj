@@ -14,7 +14,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\IntlWallet.API\IntlWallet.API.csproj" />
     <ProjectReference Include="..\IntlWallet.Data\IntlWallet.Data.csproj" />
+    <ProjectReference Include="..\IntlWallet.DTOs\IntlWallet.DTOs.csproj" />
+    <ProjectReference Include="..\IntlWallet.Utils\IntlWallet.Utils.csproj" />
   </ItemGroup>
 
 </Project>
