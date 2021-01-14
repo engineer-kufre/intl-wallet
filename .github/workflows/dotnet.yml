@@ -29,6 +29,7 @@ jobs:
         dotnet-version: 3.1.301
     - name: Restore dependencies
       run: dotnet restore
+      working-directory: ./IntlWallet/
     - name: Build
       run: dotnet build --configuration Release --no-restore
       working-directory: ./IntlWallet/
