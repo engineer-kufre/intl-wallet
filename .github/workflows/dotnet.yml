@@ -21,7 +21,7 @@ jobs:
       with:
         dotnet-version: 5.0.101
     - name: Install dependencies
-      run: dotnet restore
+      run: dotnet restore IntlWallet.sln
     - name: Build
       run: dotnet build --configuration Release --no-restore
     - name: Test
