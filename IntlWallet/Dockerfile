@@ -1,20 +1,27 @@
 #See https://aka.ms/containerfastmode to understand how Visual Studio uses this Dockerfile to build your images for faster debugging.
 
-#Depending on the operating system of the host machines(s) that will build or run the containers, the image specified in the FROM statement may need to be changed.
-#For more information, please see https://aka.ms/containercompat
-
-FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS build
+FROM mcr.microsoft.com/dotnet/core/aspnet:3.1-buster-slim AS base
 WORKDIR /app
+EXPOSE 80
+EXPOSE 443
 
-COPY . ./
-RUN dotnet restore
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1-buster AS build
+WORKDIR /src
+COPY ["IntlWallet.API/IntlWallet.API.csproj", "IntlWallet.API/"]
+COPY ["IntlWallet.Data/IntlWallet.Data.csproj", "IntlWallet.Data/"]
+COPY ["IntlWallet.Models/IntlWallet.Models.csproj", "IntlWallet.Models/"]
+COPY ["IntlWallet.Core/IntlWallet.Core.csproj", "IntlWallet.Core/"]
+COPY ["IntlWallet.DTOs/IntlWallet.DTOs.csproj", "IntlWallet.DTOs/"]
+COPY ["IntlWallet.Utils/IntlWallet.Utils.csproj", "IntlWallet.Utils/"]
+RUN dotnet restore "IntlWallet.API/IntlWallet.API.csproj"
+COPY . .
+WORKDIR "/src/IntlWallet.API"
+RUN dotnet build "IntlWallet.API.csproj" -c Release -o /app/build
 
-COPY . ./
-RUN dotnet publish -c Release -o publish
+FROM build AS publish
+RUN dotnet publish "IntlWallet.API.csproj" -c Release -o /app/publish
 
-FROM mcr.microsoft.com/dotnet/core/aspnet:3.1
+FROM base AS final
 WORKDIR /app
-EXPOSE 5000
-COPY --from=build /app/publish .
-#CMD ASPNETCORE_URLS=http://*:$PORT dotnet IntlWallet.API.dll
+COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "IntlWallet.API.dll"]
