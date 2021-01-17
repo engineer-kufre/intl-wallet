@@ -1,6 +1,6 @@
 # intl-wallet
 
-[![Build Status](https://ci-next.docker.com/public/buildStatus/icon?job=compose/master)](https://ci-next.docker.com/public/job/compose/job/master/)
+![ASP .NET Core CI](https://github.com/engineer-kufre/intl-wallet/workflows/ASP%20.NET%20Core%20CI/badge.svg)
 
 API Documentation: https://drive.google.com/file/d/1WWue6IdmY7x7hJ2yEpgx8R7TjfI7QC4s/view?usp=sharing
 
