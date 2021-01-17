@@ -1,10 +1,18 @@
-version: "3.7"
-services: 
-  sql-server-db:
-    container_name: sql-server-db
-    image: mcr.microsoft.com/mssql/server:2019-latest
+# Please refer https://aka.ms/HTTPSinContainer on how to setup an https developer certificate for your ASP .NET Core service.
+version: '3.4'
+services:
+  ms-sql-server:
+    image: mcr.microsoft.com/mssql/server:2017-latest-ubuntu
+    environment: 
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "PassW10AXD"
+      MSSQL_PID: Express
     ports: 
       - "1433:1433"
-    environment: 
-      SA_PASSWORD: "P@$$word1"
-      ACCEPT_EULA: "Y"
+  wallet-system-api:
+    build: .
+    ports: 
+      - "8080:80"
+        
+  
+        //"DbConnection": "Server=ms-sql-server,1433;Database=AppDbContext;User=SA;Password=PassW10AXD;"
